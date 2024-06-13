@@ -1,1 +1,1 @@
-# Unicode-bidirectional-proof-in-coq
+# unicode-bidirectional-proof-coq
