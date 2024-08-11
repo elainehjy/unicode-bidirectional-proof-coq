@@ -1,7 +1,5 @@
-(* unicode-bidi-proof_v1.v *)
-(* Mon 1 July 2024 *)
-
-(* Ltac destr term := let H := fresh in destruct term as [] _eqn: H. *)
+(* unicode-bidi-proof_v3.v *)
+(* Wed 7 Aug 2024 *)
 
 Require Import Bool List.
 Import ListNotations.
