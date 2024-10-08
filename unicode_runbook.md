@@ -1,86 +1,71 @@
-# Unicode Bidirectional Proof Coq Project Runbook
-
-## Steps to Get the Tests Running for the Implemented Rules
+# Unicode Bidirectional Proof Coq Project Runbook (Tests)
 
 This section outlines the steps taken to run tests for the implemented Unicode Bidirectional rules. Since Coq does not have built-in `printf` functions, the workflow involves extracting Coq code to OCaml, writing the tests in OCaml, and running the tests using generated test cases.
 
-### Generating Test Cases in OCaml
+## Generating Test Cases
 
-- `generate_bidi_tests_ocaml.ml` will be used to generate the test suite from `BidiTest.txt`.
-- The generated test cases will be placed in an `.ml` file (`generated_test_cases.ml`).
-- Initial error encountered: The `Inchannel` module cannot be used despite having installed the `Core` package.
+- `generate_bidi_tests_coq.ml` will be used to generate the test suite in Coq from `BidiTest.txt`, which can be found at https://raw.githubusercontent.com/unicode-org/icu/main/icu4c/source/test/testdata/BidiTest.txt.
+- The generated test cases will be placed in a `.v` file (`generated_test_cases.v`), which will then be extracted to a `.ml` file (`generated_test_cases.ml`), which will then be used to run the tests against the implemented rules.
 
-### Solution: Update OCaml to a Newer Version
+### Compile `unicode_bidi_class.ml` to import into tests file and rules file
 
-To resolve the error, update OCaml from version `4.12.0` to `4.14.1` which is more compatible with `Core`. Follow these steps:
+```bash
+cd Desktop/Research/Unicode/tests/coq # change directory accordingly
+ocamlc unicode_bidi_class.ml
+```
 
-1. **Update OPAM's Repository:**
+### Generate .v file from the generator `generate_bidi_tests_coq.ml`
+
+The following steps will generate `generated_test_cases.v`
+
+```bash
+cd Desktop/Research/Unicode/tests/coq # change directory accordingly
+wget https://raw.githubusercontent.com/unicode-org/icu/main/icu4c/source/test/testdata/BidiTest.txt # if have not downloaded the .txt file
+ocamlc -o generate_bidi_tests generate_bidi_tests_coq.ml # compile
+./generate_bidi_tests # run the script to generate the .v file
+```
+
+### Extract the generated test cases from Coq to Ocaml `generated_test_cases.ml`
+
+Add to the end of the `generated_test_cases.v` file:
+
+```coq
+Require Import ExtrOcamlBasic.
+Require Import ExtrOcamlString.
+
+Extract Inductive nat => int [ "0" "(fun x -> x + 1)" ].
+
+Extraction "generated_test_cases.ml" Bidi_Class Test_Case test_cases.
+```
+
+This will generate the `generated_test_cases.ml` file.
+To resolve the conflict between the 2 definitions of Bidi_Class, replace the `type Bidi_Class` at the beginning of the `.ml` file to 
+```ocaml
+open Unicode_bidi_class
+```
+
+### Compile `generated_test_cases.ml`
+```bash
+ulimit -a # check ulimit
+ulimit -s unlimited # change stack size
+ocamlc "generated_test_cases.ml"
+ocamlopt "generated_test_cases.ml"
+```
+
+### Troubleshooting
+
+If Ocaml version is not new enough for the `Inchannel` module, update Ocaml:
 
 ```bash
 opam update
-```
-
-2. **Check Available OCaml Versions:**
-
-```bash
 opam switch list-available
-```
-
-3. **Create a New OCaml Switch for Version 4.14.1:**
-
-```bash
 opam switch create 4.14.1
-```
-
-4. **Set Environment Variables for the New OCaml Switch:**
-
-```bash
-eval $(opam env)
-```
-
-5. **Install the Core Package:**
-
-```bash
+eval $(opam env) # set environment variables for the new switch
 opam install core
+opam list | grep core # verify installation
 ```
 
-6. **Verify Installation of the Core Package:**
-
-```bash
-opam list | grep core
-```
-
-### Generate the `generated_test_cases.ml` File
-
-Follow the steps below to generate the test cases:
-
-1. **Navigate to the Correct Directory:**
-
-```bash
-cd Desktop/Research/Unicode/tests/ocaml
-```
-
-2. **Download the `BidiTest.txt` File:**
-
-Use the `wget` command to download the `BidiTest.txt` file from the Unicode project:
-
-```bash
-wget https://raw.githubusercontent.com/unicode-org/icu/main/icu4c/source/test/testdata/BidiTest.txt
-```
-
-3. **Compile the OCaml Script:**
-
-```bash
-ocamlc -o generate_bidi_tests generate_bidi_tests_ocaml.ml
-```
-
-4. **Run the Script to Generate the Test Cases:**
-
-```bash
-./generate_bidi_tests
-```
-
-### Extraction of Unicode Bidi Rules from Coq to OCaml
+## Generating Unicode Bidi Rules in Ocaml
 
 In the `unicode-bidi-rules.v` file, which contains only the definitions of `w` rules, extract the rule implementations from Coq to OCaml:
 
@@ -88,97 +73,21 @@ In the `unicode-bidi-rules.v` file, which contains only the definitions of `w` r
 Require Import ExtrOcamlBasic.
 Require Import ExtrOcamlString.
 
-Extraction "unicode_bidi_rules.ml" rule_w1 rule_w2 rule_w12.
+Extraction "unicode_bidi_rules.ml" rule_w1 rule_w2 rule_w12. (* add more rules if necessary *)
 ```
-
-This will generate a `unicode_bidi_rules.ml` file containing the implementation of `rule_w1`, `rule_w2`, and `rule_w12` in OCaml. Eventually, all rules will be added (this example is for testing the first two rules).
-
-#### Note: Two Versions of `bidi_class`
-
-- There are two versions of the `bidi_class` type:
-  1. In the **tests**
-  2. In the **rules**
-
-  The rules version excludes: `BN | LRE | LRO | RLE | RLO | PDF` because of rule X9.
-
----
-
-### Import `generated_test_cases` into `unicode_bidi_rules`
-
-#### For Coq:
-
-1. **Compile `generated_test_cases.v`:**
-
-   First, navigate to the correct directory:
-
-   ```bash
-   cd Desktop/Research/Unicode/tests/coq
-   ```
-
-   Then compile the file:
-
-\```bash
-coqc "generated_test_cases.v"
-\```
-
-2. **Use the `Require` statement in `unicode_bidi_rules.v`:**
-
-After compiling, you can import the module using the following:
-
-\```coq
-Require generated_test_cases.
-\```
-
-3. **Alternatively: Use a Module:**
-
-If you don’t want to use the `Require` statement, you can load the file directly using a module:
-
-\```coq
-Module generated_test_cases.
-  Load "generated_test_cases.v".
-End generated_test_cases.
-\```
-
-Note: This method has a longer waiting time when running the code.
-
----
-
-#### For OCaml (Tentative):
-
-1. **Wrap the `generated_test_cases.ml` content in a Module:**
-
-Make sure the contents of `generated_test_cases.ml` are wrapped in a module for easy reference:
-
+In the generated `unicode-bidi-rules.ml` file, replace the `type Bidi_Class` at the beginning of the `.ml` file to 
 ```ocaml
-module Generated_test_cases = struct
-  type bidi_class = ...
-
-  let test_cases : test_case list = [
-    ...
-  ]
-end
+open Unicode_bidi_class
+open Generated_test_cases (* import the test cases *)
 ```
 
-2. **Access `test_cases` and Other Definitions:**
-
-Access `test_cases` and other definitions in `generated_test_cases.ml` by referencing them with the `Generated_test_cases` prefix:
-
-```ocaml
-let run_test () =
-  let cases = Generated_test_cases.test_cases in
-  ...
-;;
-```
-
----
-
-### Step 3: Compile the OCaml Files Together
-
-To compile both `generated_test_cases.ml` and `unicode_bidi_rules.ml` together, use the following command:
+## Running the tests using `unicode-bidi-rules.ml` and `generated_test_cases.ml`
+After adding the test functions in `unicode-bidi-rules.ml`, run the following code:
 
 ```bash
-ocamlc -o bidi_test generated_test_cases.ml unicode_bidi_rules.ml
+ocamlc -c generated_test_cases.cmo unicode_bidi_rules.ml # compile rules.ml using compiled .cmo file of tests
+ocamlc -o test0 generated_test_cases.cmo unicode_bidi_rules.cmo # change program name test0 accordingly
+./test0 # run the program to see the printed test results
 ```
 
-This will generate the final executable `bidi_test`.
 
