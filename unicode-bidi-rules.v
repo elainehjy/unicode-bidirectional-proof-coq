@@ -1,6 +1,7 @@
 (* unicode-bidi-rules.v *)
 (* Mon 23 Sep 2024 *)
 
+<<<<<<< HEAD
 Set Default Goal Selector "!". (* Force use of bullets. *)
 
 Require Import Arith Bool List String Ascii.
@@ -23,6 +24,45 @@ Fixpoint eqb_list (V : Type) (eqb_V : V -> V -> bool) (v1s v2s : list V) : bool 
   | _, _ => false
   end.
 
+=======
+Require Import Arith Bool List String Ascii.
+Import ListNotations.
+
+Inductive bidi_class : Type :=
+| WS
+| S
+| RLO
+| RLI
+| RLE
+| R
+| PDI
+| PDF
+| ON
+| NSM
+| LRO
+| LRI
+| LRE
+| L
+| FSI
+| ET
+| ES
+| EN
+| CS
+| BN
+| B
+| AN
+| AL.
+
+Definition next (text : list bidi_class) : option bidi_class :=
+  match text with
+  | [] => None
+  | c :: _ => Some c
+  end.
+
+(* ********** *)
+
+(*
+>>>>>>> 00a3550 (updated all test files)
 Inductive bidi_class : Type :=
 (* Strong *)
 | L  	(* Left_to_Right *)
@@ -50,6 +90,7 @@ Inductive bidi_class : Type :=
 | RLI	(* Right-to-Left Isolate *)
 | FSI	(* First Strong Isolate	*)
 | PDI.	(* Pop Directional Isolate *)
+<<<<<<< HEAD
 
 
 Definition eq_dec_bidi_class (x y : bidi_class) : {x = y} + {x <> y}.
@@ -72,6 +113,28 @@ Definition next (text : list bidi_class) : option bidi_class :=
   | c :: _ => Some c
   end.
 
+=======
+*)
+
+Definition map_bidi_class (bc : bidi_class) : option bidi_class :=
+  match bc with
+  | (LRE | LRO | RLE | RLO | PDF | BN) => None
+  | c => Some c
+  end.
+
+Fixpoint rule0 (text : list bidi_class) : list bidi_class :=
+  match text with
+  | [] => []
+  | c :: text' =>
+      match map_bidi_class c with
+      | Some c' => c' :: rule0 text'
+      | None => rule0 text'
+      end
+  end.
+
+Compute (rule0 [L; R; LRE; AL; FSI; PDF; BN; EN]).
+
+>>>>>>> 00a3550 (updated all test files)
 (* ********** *)
 
 (* W1: Examine each nonspacing mark (NSM) in the isolating run sequence, and change the type of the NSM to Other Neutral if the previous character is an isolate initiator or PDI, and to the type of the previous character otherwise. If the NSM is at the start of the isolating run sequence, it will get the type of sos. *)
@@ -360,7 +423,11 @@ Fixpoint rule_w17 (text : list bidi_class) (prev : bidi_class) (is_al after_en a
 Require Import ExtrOcamlBasic.
 Require Import ExtrOcamlString.
 
+<<<<<<< HEAD
 (* List the definitions you want to extract, typically the main functions or rules *)
 Extraction "unicode_bidi_rules.ml" rule_w1 rule_w2 rule_w12.
+=======
+Extraction "unicode_bidi_rules.ml" rule0 rule_w1 rule_w2 rule_w12.
+>>>>>>> 00a3550 (updated all test files)
 
 (* end of unicode-bidi-rules.v *)

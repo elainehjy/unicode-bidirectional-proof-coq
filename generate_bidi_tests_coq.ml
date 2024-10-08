@@ -208,11 +208,19 @@ let header_and_imports : string list =
   ]
 ;;
 
+<<<<<<< HEAD
 (* Generates the Coq definition of the Bidi_Property type based on the
    set of property values *)
 let generate_bidi_properties_type (props : string list) : string list =
   let edited_props = List.map (fun x -> "  | " ^ x) props in
   [ "Inductive Bidi_Property : Type :=" ] @ edited_props @ [ "."; "" ]
+=======
+(* Generates the Coq definition of the Bidi_Class type based on the
+   set of property values *)
+let generate_bidi_class_type (props : string list) : string list =
+  let edited_props = List.map (fun x -> "  | " ^ x) props in
+  [ "Inductive Bidi_Class : Type :=" ] @ edited_props @ [ "."; "" ]
+>>>>>>> 00a3550 (updated all test files)
 ;;
 
 (* Test case type in Coq *)
@@ -220,7 +228,11 @@ let test_case_type : string list =
   [ "Record Test_Case : Type := {"
   ; "  levels : list (option nat);"
   ; "  ordering : list nat;"
+<<<<<<< HEAD
   ; "  data : list (list Bidi_Property * nat);"
+=======
+  ; "  data : list (list Bidi_Class * nat);"
+>>>>>>> 00a3550 (updated all test files)
   ; "}."
   ; ""
   ]
@@ -267,7 +279,11 @@ let generate_test_cases_definition (tcs : test_case list) : string list =
 let generate_test_cases_file (test_cases : test_case list) (prop_set : string list) =
   let contents =
     header_and_imports
+<<<<<<< HEAD
     @ generate_bidi_properties_type prop_set
+=======
+    @ generate_bidi_class_type prop_set
+>>>>>>> 00a3550 (updated all test files)
     @ test_case_type
     @ generate_test_cases_definition test_cases
   in
