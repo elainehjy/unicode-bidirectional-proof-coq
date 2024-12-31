@@ -1173,5 +1173,3 @@ Proof.
     + destruct c, after_en, is_al, prev, dir; auto.
 
 (* ********** *)
-
-
