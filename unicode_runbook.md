@@ -4,13 +4,13 @@ This section outlines the steps taken to run tests for the implemented Unicode B
 
 ## Generating Test Cases
 
-- `generate_bidi_tests_coq.ml` will be used to generate the test suite in Coq from `BidiTest.txt`, which can be found at https://raw.githubusercontent.com/unicode-org/icu/main/icu4c/source/test/testdata/BidiTest.txt.
+- `generate_bidi_tests.ml` will be used to generate the test suite in Coq from `BidiTest.txt`, which can be found at https://raw.githubusercontent.com/unicode-org/icu/main/icu4c/source/test/testdata/BidiTest.txt.
 - The generated test cases will be placed in a `.v` file (`generated_test_cases.v`), which will then be extracted to a `.ml` file (`generated_test_cases.ml`), which will then be used to run the tests against the implemented rules.
 
 ### Compile `unicode_bidi_class.ml` to import into tests file and rules file
 
 ```bash
-cd Desktop/Research/Unicode/tests/coq # change directory accordingly
+cd Desktop/Research/Unicode/tests/coq/tests # change directory accordingly
 ocamlc unicode_bidi_class.ml
 ```
 
@@ -19,7 +19,6 @@ ocamlc unicode_bidi_class.ml
 The following steps will generate `generated_test_cases.v`
 
 ```bash
-cd Desktop/Research/Unicode/tests/coq # change directory accordingly
 wget https://raw.githubusercontent.com/unicode-org/icu/main/icu4c/source/test/testdata/BidiTest.txt # if have not downloaded the .txt file
 ocamlc -o generate_bidi_tests generate_bidi_tests_coq.ml # compile
 ./generate_bidi_tests # run the script to generate the .v file
@@ -81,13 +80,27 @@ open Unicode_bidi_class
 open Generated_test_cases (* import the test cases *)
 ```
 
-## Running the tests using `unicode-bidi-rules.ml` and `generated_test_cases.ml`
+## Running the tests using `unicode-bidi-rules_test.ml`, `unicode-bidi-rules_extracted.ml` and `generated_test_cases.ml`
 After adding the test functions in `unicode-bidi-rules.ml`, run the following code:
 
+
 ```bash
-ocamlc -c generated_test_cases.cmo unicode_bidi_rules.ml # compile rules.ml using compiled .cmo file of tests
-ocamlc -o test0 generated_test_cases.cmo unicode_bidi_rules.cmo # change program name test0 accordingly
-./test0 # run the program to see the printed test results
+ocamlc -c generated_test_cases.cmo unicode_bidi_rules_extracted.cmo unicode_bidi_rules_test.ml
+ocamlc -o run_tests generated_test_cases.cmo unicode_bidi_rules_extracted.cmo unicode_bidi_rules_test.cmo
+./run_tests
 ```
 
+You should see output like:
 
+```bash
+Failed X of Y tests
+Failed A of B w1 comparisons
+Failed C of D w2 comparisons
+...
+Failed M of N n2 comparisons
+```
+
+Failed X of Y tests: Summarizes how many test scenarios failed overall (including all steps).
+Failed A of B w1 comparisons: Summarizes how many times the extracted rule_w1 code diverged from the reference’s W1 result.
+Similarly for W2, W3, W4, W5, W6, W7, N1, N2.
+If everything matches perfectly, you should see zero failures for both the overall tests and the individual rule comparisons.
