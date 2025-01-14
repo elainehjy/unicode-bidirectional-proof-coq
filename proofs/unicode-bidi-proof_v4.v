@@ -597,7 +597,7 @@ Definition is_strong (c : bidi_class) : bool :=
   | _ => false
   end.
 
-Fixpoint n1_next_strong (text : list bidi_class) : bidi_class :=
+Fixpoint n1_next_strong (text : list bidi_class) (eos : bidi_class) : bidi_class :=
   match text with
   | [] => eos
   (* | c :: text' => if is_strong c || is_number c then c else n1_next_strong text' *)
@@ -627,7 +627,7 @@ Proof.
     + destruct is_al, after_en.
       reflexivity. *)
 
-Fixpoint w17n1_next_strong (text : list bidi_class) (prev : bidi_class) (is_al after_en after_l : bool) : bidi_class :=
+Fixpoint w17n1_next_strong (text : list bidi_class) (prev : bidi_class) (is_al after_en after_l : bool) (eos : bidi_class) : bidi_class :=
   match text with
   | [] => eos
   | L :: text' => L

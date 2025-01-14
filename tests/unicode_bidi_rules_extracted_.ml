@@ -1,5 +1,28 @@
 
-open Unicode_bidi_class
+type bidi_class =
+| WS
+| S
+| RLO
+| RLI
+| RLE
+| R
+| PDI
+| PDF
+| ON
+| NSM
+| LRO
+| LRI
+| LRE
+| L
+| FSI
+| ET
+| ES
+| EN
+| CS
+| BN
+| B
+| AN
+| AL
 
 (** val rule_w1 : bidi_class list -> bidi_class -> bidi_class list **)
 
@@ -122,8 +145,7 @@ let rec rule_w7 text after_l =
      | EN -> (if after_l then L else EN) :: (rule_w7 text' after_l)
      | _ -> c :: (rule_w7 text' after_l))
 
-(** val is_ni :
-    bidi_class -> bool **)
+(** val is_ni : bidi_class -> bool **)
 
 let is_ni = function
 | WS -> true

@@ -432,6 +432,8 @@ let compare_w6_result input reference_list w6_result =
 let compare_w7_result input reference_list w7_result =
   compare_rule_result "W7" w7_total w7_failed input reference_list w7_result
 
+let global_reference_after_w7 : bidi_class list ref = ref []
+
 (* ********** *)
 
 let resolve_weak_types (sequence: isolating_run_sequence) : unit =
@@ -558,7 +560,10 @@ let resolve_weak_types (sequence: isolating_run_sequence) : unit =
   (* W7 comparison *)
   let reference_after_w7 = array_to_list types in
   let w7_result = rule_w7 reference_after_w6 (sequence.sos == L) in
-  compare_w7_result reference_after_w6 reference_after_w7 w7_result
+  compare_w7_result reference_after_w6 reference_after_w7 w7_result;
+
+  (* Save the final W7 snapshot to the global reference: *)
+  global_reference_after_w7 := reference_after_w7
 
 (* ********** *)
 
@@ -566,13 +571,32 @@ let resolve_weak_types (sequence: isolating_run_sequence) : unit =
 
 (* rules n1-n2 *)
 
+let n1_total = ref 0
+let n1_failed = ref 0
+let n2_total = ref 0
+let n2_failed = ref 0
+let n12_total = ref 0
+let n12_failed = ref 0
+
+let compare_n1_result input reference_list n1_result =
+  compare_rule_result "N1" n1_total n1_failed input reference_list n1_result
+
+let compare_n2_result input reference_list n2_result =
+  compare_rule_result "N2" n2_total n2_failed input reference_list n2_result
+
+let compare_n12_result input reference_list n12_result =
+  compare_rule_result "N12" n12_total n12_failed input reference_list n12_result
+
 let resolve_neutral_types (sequence: isolating_run_sequence) : unit =
   let types = sequence.types in
   let length = sequence.length in
+  let reference_after_w7 = !global_reference_after_w7 in
+  let two_pass_types = Array.copy types in
 
   (* Ensure only allowed types are in `types` *)
   assert_only types length [L; R; EN; AN; B; S; WS; ON; RLI; LRI; FSI; PDI];
 
+  (* does n1 and n2 simultaneously *)
   let i = ref 0 in
   while !i < length do
     match types.(!i) with
@@ -603,7 +627,65 @@ let resolve_neutral_types (sequence: isolating_run_sequence) : unit =
     | _ ->
        (* For all other types, move to the next index *)
        incr i
-  done
+  done;
+
+  (* does n1 *)
+  let i = ref 0 in
+  while !i < length do
+    match two_pass_types.(!i) with
+    | WS | ON | B | S | RLI | LRI | FSI | PDI ->
+       (* Handle neutrals *)
+       let run_start = !i in
+       let run_limit = find_run_limit two_pass_types run_start length [B; S; WS; ON; RLI; LRI; FSI; PDI] in
+       (* Determine effective types at ends of run *)
+       let leading_type =
+         if run_start = 0 then sequence.sos
+         else
+           let prev_type = two_pass_types.(run_start - 1) in
+           if prev_type = AN || prev_type = EN then R else prev_type
+       in
+       let trailing_type =
+         if run_limit = length then sequence.eos
+         else
+           let next_type = two_pass_types.(run_limit) in
+           if next_type = AN || next_type = EN then R else next_type
+       in
+       if leading_type = trailing_type then set_types two_pass_types run_start run_limit leading_type;
+       (* Skip over the run of neutrals *)
+       i := run_limit
+    | _ ->
+       (* For all other types, move to the next index *)
+       incr i
+  done;
+  
+  (* N1 comparison *)
+  let reference_after_n1 = array_to_list two_pass_types in
+  let prev_for_n1 = sequence.sos in
+  let n1_result = rule_n1 reference_after_w7 prev_for_n1 sequence.eos in
+  compare_n1_result reference_after_w7 reference_after_n1 n1_result;
+
+  (* does n2 *)
+  let i = ref 0 in
+  while !i < length do
+    match two_pass_types.(!i) with
+    | WS | ON | B | S | RLI | LRI | FSI | PDI ->
+       (* Handle neutrals *)
+       let run_start = !i in
+       let run_limit = find_run_limit two_pass_types run_start length [B; S; WS; ON; RLI; LRI; FSI; PDI] in
+       set_types two_pass_types run_start run_limit (type_for_level sequence.level);
+       (* Skip over the run of neutrals *)
+       i := run_limit
+    | _ ->
+       (* For all other types, move to the next index *)
+       incr i
+  done;
+
+  (* N2 comparison *)
+  let reference_after_n2 = array_to_list two_pass_types in
+  let n2_result = rule_n2 reference_after_n1 (type_for_level sequence.level) in
+  compare_n2_result reference_after_n1 reference_after_n2 n2_result;
+  
+  compare_n12_result reference_after_w7 (array_to_list types) (array_to_list two_pass_types)
 
 
 (* ********** *)
@@ -967,6 +1049,9 @@ let run_tests test_cases =
   Printf.printf "Failed %d of %d w5 comparisons\n" !w5_failed !w5_total;
   Printf.printf "Failed %d of %d w6 comparisons\n" !w6_failed !w6_total;
   Printf.printf "Failed %d of %d w7 comparisons\n" !w7_failed !w7_total;
+  Printf.printf "Failed %d of %d n1 comparisons\n" !n1_failed !n1_total;
+  Printf.printf "Failed %d of %d n2 comparisons\n" !n2_failed !n2_total;
+  Printf.printf "Failed %d of %d n12 comparisons\n" !n12_failed !n12_total;
   flush stdout
 
 let () = run_tests test_cases;

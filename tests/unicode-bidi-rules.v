@@ -56,8 +56,8 @@ Defined.
 Definition eqb_bidi_class (a b : bidi_class) : bool :=
   if (eq_dec_bidi_class a b) then true else false.
 
-Parameter sos : bidi_class.
-Parameter eos : bidi_class.
+(* Parameter sos : bidi_class.
+Parameter eos : bidi_class. *)
 
 Definition next (text : list bidi_class) : option bidi_class :=
   match text with
@@ -395,10 +395,59 @@ Fixpoint rule_w17 (text : list bidi_class) (prev : bidi_class) (is_al after_en a
 
 (* ********** *)
 
+(* NI : Neutral or Isolate formatting character (B, S, WS, ON, FSI, LRI, RLI, PDI). *)
+      
+(* N1. A sequence of NIs takes the direction of the surrounding strong text if the text on both sides has the same direction. European and Arabic numbers act as if they were R in terms of their influence on NIs. The start-of-sequence (sos) and end-of-sequence (eos) types are used at isolating run sequence boundaries. *)
+
+Definition is_ni (c : bidi_class) : bool :=
+  match c with
+  | B | S | WS | ON | FSI | LRI | RLI | PDI => true
+  | _ => false
+  end.
+
+Definition is_strong (c : bidi_class) : bool :=
+  match c with
+  | L | R | EN | AN => true
+  | _ => false
+  end.
+
+Fixpoint n1_next_strong (text : list bidi_class) (eos : bidi_class) : bidi_class :=
+  match text with
+  | [] => eos
+  (* | c :: text' => if is_strong c || is_number c then c else n1_next_strong text' *)
+  | (L | R | EN | AN) as c :: _ => c (* What about AL *)
+  | _ :: text' => n1_next_strong text' eos
+  end.
+
+Fixpoint rule_n1 (text : list bidi_class) (prev : bidi_class) (eos : bidi_class) : list bidi_class :=
+  match text, prev, n1_next_strong text eos with
+  | [], _, _ => []
+  | (B | S | WS | ON | FSI | LRI | RLI | PDI) :: text', L, L => L :: rule_n1 text' prev eos
+  | (B | S | WS | ON | FSI | LRI | RLI | PDI) :: text', (R | EN | AN), (R | EN | AN) => R :: rule_n1 text' prev eos 
+  | ((B | S | WS | ON | FSI | LRI | RLI | PDI) as c):: text', _, _ => c :: rule_n1 text' prev eos (* TODO: as default *)
+  | c :: text', _, _ => c :: rule_n1 text' (if is_strong c then c else prev) eos
+  end.
+
+(* N2. Any remaining NIs take the embedding direction.
+
+NI → e
+
+The embedding direction for the given NI character is derived from its embedding level: L if the character is set to an even level, and R if the level is odd. *)
+
+Fixpoint rule_n2 (text : list bidi_class) (dir : bidi_class) : list bidi_class :=
+  match text with
+  | [] => []
+  | c :: text' => if is_ni c
+                  then dir :: rule_n2 text' dir
+                  else c :: rule_n2 text' dir
+  end.
+
+(* ********** *)
+
 Require Import ExtrOcamlBasic.
 Require Import ExtrOcamlString.
 
 (* List the definitions you want to extract, typically the main functions or rules *)
-Extraction "unicode_bidi_rules_extracted.ml" rule_w1 rule_w2 rule_w3 rule_w4 rule_w5 rule_w6 rule_w7.
+Extraction "unicode_bidi_rules_extracted_.ml" rule_w1 rule_w2 rule_w3 rule_w4 rule_w5 rule_w6 rule_w7 rule_n1 rule_n2.
 
 (* end of unicode-bidi-rules.v *)
