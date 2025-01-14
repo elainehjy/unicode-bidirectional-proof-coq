@@ -72,19 +72,19 @@ In the `unicode-bidi-rules.v` file, which contains only the definitions of `w` r
 Require Import ExtrOcamlBasic.
 Require Import ExtrOcamlString.
 
-Extraction "unicode_bidi_rules.ml" rule_w1 rule_w2 rule_w12. (* add more rules if necessary *)
+Extraction "unicode_bidi_rules_extracted.ml" rule_w1 rule_w2 rule_w3 rule_w4 rule_w5 rule_w6 rule_w7. (* add more rules if necessary *)
 ```
-In the generated `unicode-bidi-rules.ml` file, replace the `type Bidi_Class` at the beginning of the `.ml` file to 
+In the generated `unicode_bidi_rules_extracted.ml` file, replace the `type Bidi_Class` at the beginning of the `.ml` file to 
 ```ocaml
 open Unicode_bidi_class
-open Generated_test_cases (* import the test cases *)
 ```
 
-## Running the tests using `unicode-bidi-rules_test.ml`, `unicode-bidi-rules_extracted.ml` and `generated_test_cases.ml`
-After adding the test functions in `unicode-bidi-rules.ml`, run the following code:
+## Running the tests using `unicode_bidi_rules_test.ml`, `unicode_bidi_rules_extracted.ml` and `generated_test_cases.ml`
+After adding the test functions in `unicode_bidi_rules_test.ml`, run the following code:
 
 
 ```bash
+ocamlc unicode_bidi_rules_extracted.ml
 ocamlc -c generated_test_cases.cmo unicode_bidi_rules_extracted.cmo unicode_bidi_rules_test.ml
 ocamlc -o run_tests generated_test_cases.cmo unicode_bidi_rules_extracted.cmo unicode_bidi_rules_test.cmo
 ./run_tests
